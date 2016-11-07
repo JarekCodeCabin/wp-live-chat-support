@@ -816,3 +816,10 @@
     bottom: 0;
 }
 
+.wplc_dashboard_additional_label {
+    width: 100%;
+    text-align: center;
+    display: block;
+    margin-top: 10px;
+    cursor: help;
+}

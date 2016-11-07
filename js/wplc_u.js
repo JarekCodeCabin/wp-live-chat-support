@@ -560,6 +560,10 @@ jQuery(document).ready(function() {
                         wplcsession: wplc_session_variable,
                         wplc_extra_data:wplc_extra_data                        
                 };
+
+                if(typeof wplc_start_chat_pro_data !== "undefined" && typeof wplc_start_chat_pro_data === "function"){
+                    data = wplc_start_chat_pro_data(data);
+                }   
             } else { // no cookie recorded yet for this visitor
                 var data = {
                         action: 'wplc_start_chat',
@@ -569,6 +573,10 @@ jQuery(document).ready(function() {
                         wplcsession: wplc_session_variable,
                         wplc_extra_data:wplc_extra_data                        
                 };
+                
+                if(typeof wplc_start_chat_pro_data !== "undefined" && typeof wplc_start_chat_pro_data === "function"){
+                    data = wplc_start_chat_pro_data(data);
+                }   
             }
             //changed ajax url so wp_mail function will work and not stop plugin from alerting admin there is a pending chat
             jQuery.post(wplc_ajaxurl, data, function(response) {

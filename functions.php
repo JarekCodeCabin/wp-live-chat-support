@@ -45,9 +45,8 @@ function wplc_log_user_on_page($name,$email,$session, $is_mobile = false) {
         $other['user_is_mobile'] = false;
      }
     
-    $wpdb->insert( 
-	$wplc_tblname_chats, 
-	array( 
+
+    $wplc_chat_session_data = array( 
             'status' => '5', 
             'timestamp' => current_time('mysql'),
             'name' => $name,
@@ -57,8 +56,12 @@ function wplc_log_user_on_page($name,$email,$session, $is_mobile = false) {
             'url' => sanitize_text_field($_SERVER['HTTP_REFERER']), 
             'last_active_timestamp' => current_time('mysql'),
             'other' => maybe_serialize($other),
-	), 
-	array( 
+    );
+
+    $wplc_chat_session_data = apply_filters("wplc_log_user_on_page_insert_filter", $wplc_chat_session_data);
+
+    /* Omitted from inser call as this defaults to string
+    $wplc_chat_session_types = array( 
             '%s', 
             '%s',
             '%s',
@@ -68,9 +71,9 @@ function wplc_log_user_on_page($name,$email,$session, $is_mobile = false) {
             '%s',
             '%s',
             '%s'
-	) 
-    );
-    
+    ); */
+
+    $wpdb->insert($wplc_tblname_chats, $wplc_chat_session_data);
     $lastid = $wpdb->insert_id;
 
 
@@ -459,7 +462,12 @@ function wplc_list_chats_new($post_data) {
     global $wplc_tblname_chats;
     $status = 3;
     $wplc_c = 0;    
-    $results = $wpdb->get_results("SELECT * FROM $wplc_tblname_chats WHERE `status` = 3 OR `status` = 2 OR `status` = 10 OR `status` = 5 or `status` = 8 or `status` = 9 ORDER BY `timestamp` ASC");
+
+    $wplc_chat_sql = "SELECT * FROM $wplc_tblname_chats WHERE (`status` = 3 OR `status` = 2 OR `status` = 10 OR `status` = 5 or `status` = 8 or `status` = 9)";
+    $wplc_chat_sql .= apply_filters("wplc_alter_chat_list_sql_before_sorting", "");
+    $wplc_chat_sql .= " ORDER BY `timestamp` ASC";
+
+    $results = $wpdb->get_results($wplc_chat_sql);
     $data_array = array();
     $id_list = array();
     
@@ -1318,6 +1326,8 @@ function wplc_user_initiate_chat($name,$email,$cid = null,$session) {
             ), 
             array('%d') 
         );
+
+        do_action("wplc_start_chat_hook_after_data_insert", $cid);
         return $cid;
     }
     else { 
@@ -1348,6 +1358,8 @@ function wplc_user_initiate_chat($name,$email,$cid = null,$session) {
         
         
         $lastid = $wpdb->insert_id;
+        
+        do_action("wplc_start_chat_hook_after_data_insert", $lastid);
         return $lastid;
     }
 
