@@ -816,3 +816,6 @@
     bottom: 0;
 }
 
+.manage-column, #the-list{
+    text-align:center !important;
+}
