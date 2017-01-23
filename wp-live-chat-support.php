@@ -3,7 +3,7 @@
   Plugin Name: WP Live Chat Support
   Plugin URI: http://www.wp-livechat.com
   Description: The easiest to use website live chat plugin. Let your visitors chat with you and increase sales conversion rates with WP Live Chat Support. No third party connection required!
-  Version: 7.0.01
+  Version: 7.0.02
   Author: WP-LiveChat
   Author URI: http://www.wp-livechat.com
   Text Domain: wplivechat
@@ -11,10 +11,13 @@
  */
  
 /* 
+ * 7.0.02 - 
+ * Added the ability for users to subscribe to our mailing list
+ * 
  * 7.0.01 - 2017-01-03
  * Fixed a bug that caused the chat to disappear after being opened for some users
  * Changes made to the language files
- * PHPMailer has been update to the latest version
+ * PHPMailer has been updated to the latest version
  * 
  * 7.0.00 - 2016-12-14
  * Major performance improvements - 300% reduction in DB calls
@@ -469,7 +472,7 @@ global $wplc_tblname_offline_msgs;
 $wplc_tblname_offline_msgs = $wpdb->prefix . "wplc_offline_messages";
 $wplc_tblname_chats = $wpdb->prefix . "wplc_chat_sessions";
 $wplc_tblname_msgs = $wpdb->prefix . "wplc_chat_msgs";
-$wplc_version = "7.0.01";
+$wplc_version = "7.0.02";
 
 define('WPLC_BASIC_PLUGIN_DIR', dirname(__FILE__));
 define('WPLC_BASIC_PLUGIN_URL', plugins_url() . "/wp-live-chat-support/");
@@ -5243,4 +5246,93 @@ function wplc_basic_version_departments(){
   	$content .= 	"</table>";
 
   	echo $content;
+
+}
+
+/**
+ * Adds links to the plugin item on the plugins page
+ */
+add_filter( 'network_admin_plugin_action_links_wp-live-chat-support/wp-live-chat-support.php', 'wplc_plugin_action_links' );
+add_filter( 'plugin_action_links_wp-live-chat-support/wp-live-chat-support.php', 'wplc_plugin_action_links' );
+function wplc_plugin_action_links( $links ) {
+
+    array_unshift( $links, '<a class="edit" href="' . admin_url('admin.php?page=wplivechat-menu') . '">' . __( 'Chat Dashboard', 'wplivechat' ) . '</a>' );
+
+    array_unshift( $links, '<a class="edit" href="' . admin_url('admin.php?page=wplivechat-menu-settings') . '">' . __( 'Settings', 'wplivechat' ) . '</a>' );    
+    	
+	array_unshift( $links, '<a class="" target="_BLANK" href="https://wp-livechat.com/purchase-pro/?utm_source=plugin&utm_medium=link&utm_campaign=plugin_link_upgrade">' . __( 'Get Pro Version', 'wplivechat' ) . '</a>' );
+
+    return $links;
+}
+
+add_action( 'wp_ajax_wplc_subscribe','wplc_ajax_subscribe');
+
+function wplc_ajax_subscribe() {
+
+    $check = check_ajax_referer( 'wplc_subscribe_nonce', 'security' );
+
+    if ( $check == 1 ) {
+
+        if ( $_POST['action'] == 'wplc_subscribe' ) {
+
+            $uid = get_current_user_id();
+            
+            update_user_meta( $uid, 'wplc_subscribed', true);
+
+        }
+
+    }
+
+}
+
+add_action ( 'admin_head', 'wplc_plugin_row_js' );
+function wplc_plugin_row_js(){
+    
+    $current_page = get_current_screen();
+
+    if ( $current_page->base == 'plugins' ) {
+    
+        wp_register_script( 'wplc_plugin_row_js', plugin_dir_url( __FILE__ ).'js/wplc_plugin_row.js', array( 'jquery-ui-core' ) );
+        wp_enqueue_script( 'wplc_plugin_row_js' );
+        wp_localize_script( 'wplc_plugin_row_js', 'wplc_sub_nonce', wp_create_nonce("wplc_subscribe_nonce") );
+    
+    }
+}
+
+
+/**
+ * Adds the email subscription field below the plugin row on the plugins page
+ * 
+ */
+add_filter( 'plugin_row_meta', 'wplc_plugin_row', 4, 10 );
+function wplc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
+
+    if ( $plugin_file == "wp-live-chat-support/wp-live-chat-support.php") {
+   
+    	$user_data = get_user_by( 'id', get_current_user_id() );
+
+    	$user_email_address = $user_data->data->user_email;
+
+        $check = get_user_meta( get_current_user_id(), 'wplc_subscribed' );
+
+        if (!$check) {
+        
+            $ret = '<div style="margin-top:10px; color:#333; display:block; white-space:normal;">';
+            $ret .= '<form>';
+            $ret .= '<p><label for="wplc_signup_newsletter" style="font-style:italic; margin-bottom:5px;">' . __( 'Sign up to our newsletter and get information on the latest updates, beta versions and specials.', 'wplivechat' ) . '</label></p>';
+            $ret .= '<span id="wplc_subscribe_div">';
+            $ret .= '<input type="text" name="wplc_signup_newsletter" id="wplc_signup_newsletter" value="'.$user_email_address.'"></option>';
+            $ret .= '<input type="button" class="button button-primary"  id="wplc_signup_newsletter_btn" name="wplc_signup_newsletter_btn" value="' . __( 'Sign up', 'wplivechat' ) . '" />';
+            $ret .= '<span>';
+            $ret .= '</form>';
+            $ret .= '</div>';
+
+            array_push( $plugin_meta, $ret );
+
+        }
+
+    }
+
+    return $plugin_meta;
+
 }
